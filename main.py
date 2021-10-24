@@ -8,6 +8,8 @@ WHITE = (255, 255, 255)
 ORANGE = (255, 127, 0)
 BLACK = (0, 0, 0)
 G = 6.673 * 1e-10
+M_SUN = 1.98892e+30
+M_EARTH = 5.9722e+24
 camSize = 1
 
 pygame.init()
@@ -26,7 +28,7 @@ def posToVector(v):
     return np.array((math.atan2(v[1],v[0])*180/math.pi, math.sqrt(v[0]**2+v[1]**2)))
 
 class Gargantua():
-    def __init__(self,x,y,weight=1.3923e+41) -> None:
+    def __init__(self,x,y,weight=4.7e+6 * M_SUN) -> None:
         self.x = x
         self.y = y
         self.weight = weight
@@ -51,11 +53,10 @@ class Ranger():
         self.constantForceValue = constantForce[1]
     
     def gravityCalculate(self,blackhole):
-        r = math.sqrt((blackhole.x - self.x)**2 + (blackhole.y - self.y)**2)*camSize
+        r = math.sqrt((blackhole.x - self.x)**2 + (blackhole.y - self.y)**2)
         degree = math.atan2(self.y-blackhole.y,self.x-blackhole.x)*180/math.pi
         speed = - G * self.weight * blackhole.weight /(r**2)
 
-        gravity = np.array((math.cos(degree)*speed,math.sin(degree)*speed))
         result = addTwoVector((degree,speed),(self.forceDegree,self.forceValue))
         result = addTwoVector(posToVector(result),posToVector(addTwoVector((0,0),(self.constantForceDegree,self.constantForceValue))))
         self.forceDegree = posToVector(result)[0]
@@ -80,25 +81,25 @@ class Ranger():
         dy2 = add_h(math.sin(math.radians(self.degree+120)) * 10)
         dx3 = add_h(math.cos(math.radians(self.degree-120)) * 10)
         dy3 = add_h(math.sin(math.radians(self.degree-120)) * 10)
-        dx = int(math.cos(math.radians(self.degree)) * 15)
-        dy = int(math.sin(math.radians(self.degree)) * 15)
-        dx2 = int(math.cos(math.radians(self.degree+120)) * 10)
-        dy2 = int(math.sin(math.radians(self.degree+120)) * 10)
-        dx3 = int(math.cos(math.radians(self.degree-120)) * 10)
-        dy3 = int(math.sin(math.radians(self.degree-120)) * 10)
-        #pygame.draw.polygon(surface=screen, color=WHITE, points=[(x+dx,y+dy), (x+dx2,y+dy2), (x+dx3,y+dy3)])
+        dx = add_h(math.cos(math.radians(self.degree)) * 15)
+        dy = add_h(math.sin(math.radians(self.degree)) * 15)
+        dx2 = add_h(math.cos(math.radians(self.degree+120)) * 10)
+        dy2 = add_h(math.sin(math.radians(self.degree+120)) * 10)
+        dx3 = add_h(math.cos(math.radians(self.degree-120)) * 10)
+        dy3 = add_h(math.sin(math.radians(self.degree-120)) * 10)
         pygame.draw.polygon(surface=screen, color=WHITE, points=[(x+dx,y+dy), (x+dx2,y+dy2), (x+dx3,y+dy3)])
-        #screen.blit(self.img, (add_h(self.x)+SCREEN_WIDTH/2, add_h(self.y)+SCREEN_HEIGHT/2))
 
 clock = pygame.time.Clock()
-gargantua = Gargantua(0,0,10000000000)
-initRanger = Ranger(200,200,-90,initForce=0,constantForce=(-90,0.00005))
+gargantua = Gargantua(0,0,0)
+initRanger = Ranger(200,200,-90,initForce=0,constantForce=(-90,0.0001),weight=10)
 ranger = copy.copy(initRanger)
 while True:
     clock.tick(100)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             sys.exit()
+    
+    #m**2=(gargantua.x * m - m*ranger.x + ranger.y - gargantua.y)**2/(50**2) - 1
 
     screen.fill(BLACK)
     #print("=====")
@@ -108,7 +109,7 @@ while True:
     if math.sqrt((ranger.x - gargantua.x)**2 + (ranger.y - gargantua.y)**2)*camSize <= 120:# or math.sqrt((ranger.x - gargantua.x)**2 + (ranger.y - gargantua.y)**2)*camSize >= 5550:
         print(ranger.x,ranger.y)
         ranger = copy.copy(initRanger)
-    print(ranger.forceValue)
+    #print(ranger.forceValue)
     #print(ranger.x,ranger.y)
     #print("=====")
     
