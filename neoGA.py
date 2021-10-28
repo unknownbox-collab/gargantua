@@ -5,7 +5,7 @@ import numpy as np
 
 GENE_SET = 10000
 OBJECT_NUM = 10
-GENE_NUM = 7
+GENE_NUM = 8
 BEST_NUM = 2
 
 def mCopy(arg):
@@ -41,11 +41,11 @@ def crossOver(gene):
         result[i+1] = copy.copy(second)
     return  mCopy(result)
 
-def simulation(gene,nowCycle = None,printMod = False) -> list:
+def simulation(gene,gargantuaInfo,nowCycle = None,printMod = False) -> list:
     result = []
     copyGene = mCopy(gene)
     for i in range(len(gene)):
-        result.append(main.get_fitness(copyGene[i]))
+        result.append(main.get_fitness(copyGene[i],gargantuaInfo=gargantuaInfo))
         if printMod:
             if nowCycle is None:
                 print(f'{round((i+1)/len(gene)*100,3)}%')
@@ -59,46 +59,44 @@ def mutation(gene,percent = 10) -> list:
     for i in range(len(gene)):
         for j in range(GENE_NUM):
             if random.random() < percent/100:
-                result[i][j] = random.randint(0,GENE_SET)
+                result[i][j] = random.randint(max(-result[i][j],-1000),min(GENE_SET,result[i][j]+1000))
     return mCopy(result)
 
-def oneCycle(gene,generation = 0,printMod = False):
+def oneCycle(gene,gargantuaInfo,generation = 0,printMod = False):
     if printMod : print(f"/////GENERATION {generation+1}/////")
-    fitness = simulation(mCopy(gene),generation,printMod)[:]
-    print("///////////////")
+    fitness = simulation(mCopy(gene),gargantuaInfo,generation,printMod)[:]
     print(np.max(fitness))
     bestGene = selection(mCopy(gene),fitness[:])[0]
     S = sum([selection(mCopy(gene),fitness[:])[0] for i in range(OBJECT_NUM//BEST_NUM-1)] ,[])
     G2 = mCopy(crossOver(S))
-    G2 = mCopy(mutation(G2,20))
+    G2 = mCopy(mutation(G2,40))
     final = bestGene
     final.extend(mCopy(G2))
     return mCopy(final),fitness[:]
 
-def GA(generation,file = False,printMod = False):
+def GA(generation,file = False,printMod = False,preGene = None):
     try:
         gene = [makeParents(),np.zeros(OBJECT_NUM)]
+        if preGene is not None:
+            gene[0][0] = preGene
         now = datetime.datetime.now()
         if file:
             print("초기 데이터 설정중..")
-            fitness = simulation(gene[0],printMod = True)
-            data = {"gene" : [list(map(list,mCopy(gene)[0]))],
-                    "fitness" : [fitness[:]],
+            fitness = simulation(gene[0],[main.gargantua.x,main.gargantua.y,main.gargantua.weight],printMod = True)
+            data = {"gargantuaPos" : [main.gargantua.x,main.gargantua.y],
+                    "gargantuaWeight" : main.gargantua.weight,
                     "bestGene" : [list(mCopy(gene)[0][np.argmax(fitness[:])])],
                     "bestFitness" : [np.max(fitness[:])]
                 }
             print("초기데이터 설정 완료!")
         for i in range(generation):
-            gene = oneCycle(mCopy(gene)[0],i,printMod)[:]
+            gene = oneCycle(mCopy(gene)[0],[data["gargantuaPos"][0],data["gargantuaPos"][1],data["gargantuaWeight"]],i,printMod)[:]
             #print(chromosomes[np.argmax(map(getFitness,fitness[:]))])
             if file:
-                data["gene"].append(list(map(list,mCopy(gene)[0])))
-                data["fitness"].append(mCopy(gene)[1])
                 data["bestGene"].append(list(mCopy(gene)[0][np.argmax(mCopy(gene)[1])]))
                 data["bestFitness"].append(np.max(mCopy(gene)[1]))
         if file:
             openFile = open(f'./result/GA_{now.year}.{now.month}.{now.day}.{now.hour}.{now.minute}.{now.second}.{now.microsecond}.json','w')
-            data["fitness"].pop(1)
             data = eval(str(data))
             openFile.write(json.dumps(data,indent=4))
             openFile.close()
@@ -110,4 +108,13 @@ def GA(generation,file = False,printMod = False):
             openFile.write(json.dumps(data,indent=4))
             openFile.close()
 
-GA(30,True,True)
+preGene = [
+            190,
+            343,
+            1510,
+            9758,
+            1258,
+            9831,
+            2098
+        ]
+GA(100,True,True,None)

@@ -37,15 +37,15 @@ class Gargantua():
         pygame.draw.circle(screen, BLACK, (SCREEN_WIDTH/2+add_h(self.x), SCREEN_HEIGHT/2+add_h(self.y)), add_h(50))
 
 class Ranger():
-    def __init__(self,x,y,degree,weight = 10,initForce = 0,constantForce = (-90,0)) -> None:
-        self.img = pygame.image.load('ranger.jpg')
-        self.img = pygame.transform.scale(self.img, (add_h(10), add_h(10)))
-        self.img = pygame.transform.rotate(self.img, degree)
+    def __init__(self,x,y,degree,weight = 10,initSpeed = 0,initForce = 0,constantForce = (-90,0)) -> None:
+        #self.img = pygame.image.load('ranger.jpg')
+        #self.img = pygame.transform.scale(self.img, (add_h(10), add_h(10)))
+        #self.img = pygame.transform.rotate(self.img, degree)
         self.x = x
         self.y = y
         self.weight = weight
         self.degree = degree
-        self.speed = 0
+        self.speed = initSpeed
         self.forceDegree = degree
         self.forceValue = initForce
         self.constantForceDegree = constantForce[0]
@@ -63,7 +63,7 @@ class Ranger():
     
     def move(self,blackhole):
         self.gravityCalculate(blackhole)
-        d = addTwoVector((self.forceDegree,self.forceValue),(self.degree,self.speed))
+        d = addTwoVector((self.forceDegree,self.forceValue/self.weight),(self.degree,self.speed))
         self.x += d[0]
         self.y += d[1]
         
@@ -80,14 +80,14 @@ class Ranger():
         dy2 = int(math.sin(math.radians(self.degree+120)) * 10)
         dx3 = int(math.cos(math.radians(self.degree-120)) * 10)
         dy3 = int(math.sin(math.radians(self.degree-120)) * 10)
-        #dx = add_h(math.cos(math.radians(self.degree)) * 15)
-        #dy = add_h(math.sin(math.radians(self.degree)) * 15)
-        #dx2 = add_h(math.cos(math.radians(self.degree+120)) * 10)
-        #dy2 = add_h(math.sin(math.radians(self.degree+120)) * 10)
-        #dx3 = add_h(math.cos(math.radians(self.degree-120)) * 10)
-        #dy3 = add_h(math.sin(math.radians(self.degree-120)) * 10)
+        dx = add_h(math.cos(math.radians(self.degree)) * 15)
+        dy = add_h(math.sin(math.radians(self.degree)) * 15)
+        dx2 = add_h(math.cos(math.radians(self.degree+120)) * 10)
+        dy2 = add_h(math.sin(math.radians(self.degree+120)) * 10)
+        dx3 = add_h(math.cos(math.radians(self.degree-120)) * 10)
+        dy3 = add_h(math.sin(math.radians(self.degree-120)) * 10)
         pygame.draw.polygon(surface=screen, color=WHITE, points=[(x+dx,y+dy), (x+dx2,y+dy2), (x+dx3,y+dy3)])    
-gargantua = Gargantua(0,0,2e+9)
+gargantua = Gargantua(0,0,3e+10)
 if __name__ == "__main__":
     pygame.init()
     pygame.display.set_caption("GARGANTUA")
@@ -95,16 +95,17 @@ if __name__ == "__main__":
 
     clock = pygame.time.Clock()
     gene = [
-            642,
-            9578,
-            389,
-            6366,
-            8480,
-            8068,
-            3033
+            6273,
+            214,
+            5916,
+            7418,
+            5794,
+            824,
+            2,
+            335
         ]
-    initRanger = Ranger(gene[0]-5000,gene[1]-5000,gene[2]/5000*180,initForce=gene[3]/1000000,constantForce=(gene[4]/5000*180,gene[5]/10000000),weight=gene[6]/100)
-    #initRanger = Ranger(100,100,-90,initForce=0.002,constantForce=(-90,0.0),weight=(M_EARTH/M_SUN)*1e+2)
+    initRanger = Ranger(gene[0]-5000,gene[1]-5000,gene[2]/5000*180,initSpeed=gene[3]/1000000,initForce=gene[4]/1000000,constantForce=(gene[5]/5000*180,gene[6]/10000000),weight=gene[7]/100)
+    #initRanger = Ranger(100,100,-90,initForce=1,constantForce=(-90,0.0),weight=10)
     ranger = copy.copy(initRanger)
     data = {"forceValue":[],
             "distance":[],
@@ -114,7 +115,7 @@ if __name__ == "__main__":
             "deltaPos":[]}
     startTime = time.time()
     while True:
-        clock.tick(100)
+        clock.tick(1000000)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 sys.exit()
@@ -133,9 +134,10 @@ if __name__ == "__main__":
         data["distance"].append(math.sqrt((ranger.x - gargantua.x)**2 + (ranger.y - gargantua.y)**2))
         if len(data["forceValue"])>=2 : data["deltaForceValue"].append(ranger.forceValue-data["forceValue"][-2])
         data["speed"].append(ranger.speed)
-        if math.sqrt((ranger.x - gargantua.x)**2 + (ranger.y - gargantua.y)**2) <= 50 or time.time()-startTime>10:# or math.sqrt((ranger.x - gargantua.x)**2 + (ranger.y - gargantua.y)**2)*camSize >= 100000:
+        if math.sqrt((ranger.x - gargantua.x)**2 + (ranger.y - gargantua.y)**2) <= 50 or math.sqrt((ranger.x - gargantua.x)**2 + (ranger.y - gargantua.y)**2) > 1e+6:
             print(ranger.x,ranger.y)
             break
+            #if time.time()-startTime>10:break
             #ranger = copy.copy(initRanger)
         #print(ranger.forceValue)
         #print(ranger.x,ranger.y)
@@ -154,17 +156,20 @@ if __name__ == "__main__":
     now = datetime.datetime.now()
 
     file = open(f'./result/{now.year}.{now.month}.{now.day}.{now.hour}.{now.minute}.{now.second}.{now.microsecond}.json','w')
+    print(sum(data["deltaPos"]))
     file.write(json.dumps(data,indent=4))
     file.close()
     print(f"결과가 저장되었습니다!\n{now.year}.{now.month}.{now.day}.{now.hour}.{now.minute}.{now.second}.{now.microsecond}.json")
-def get_fitness(gene):
+
+def get_fitness(gene,gargantuaInfo):
+    gargantua = Gargantua(gargantuaInfo[0],gargantuaInfo[1],gargantuaInfo[2])
     data = {"forceValue":[],
             "distance":[],
             "speed":[],
             "deltaForceValue":[],
             "pos":[],
             "deltaPos":[]}
-    ranger = Ranger(gene[0]-5000,gene[1]-5000,gene[2]/5000*180,initForce=gene[3]/1000000,constantForce=(gene[4]/5000*180,gene[5]/10000000),weight=gene[6]/100)
+    ranger = Ranger(gene[0]-5000,gene[1]-5000,gene[2]/5000*180,initSpeed=gene[3]/1000000,initForce=gene[4]/1000000,constantForce=(gene[5]/5000*180,gene[6]/10000000),weight=gene[7]/100)
     startTime = time.time()
     while True:
         ranger.move(gargantua)
